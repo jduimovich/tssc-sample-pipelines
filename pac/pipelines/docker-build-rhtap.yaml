@@ -236,6 +236,12 @@ spec:
       taskRef:
         kind: Task
         name: update-deployment
+    - name: report-scan-output
+      runAfter:
+        - acs-image-scan
+      taskRef:
+        kind: Task
+        name: report-scan-output
   workspaces:
     - name: workspace
     - name: git-auth
