@@ -16,5 +16,5 @@ spec:
 
       script: |
         #!/bin/bash  
-        echo  $(tasks.acs-image-scan.results.SCAN_OUTPUT) | tee $(results.SCAN_OUTPUT.path)
-        echo  $(tasks.acs-image-scan.results.TEST_OUTPUT) | tee $(results.TEST_OUTPUT.path)
+        echo  "$(tasks.acs-image-scan.results.SCAN_OUTPUT)" | tee $(results.SCAN_OUTPUT.path)
+        echo  "$(tasks.acs-image-scan.results.TEST_OUTPUT)" | tee $(results.TEST_OUTPUT.path)
