@@ -7,14 +7,11 @@ spec:
     Take scan_output from ACS_SCAN and format for RHTAP 
   results:
     - name: SCAN_OUTPUT
-      description: Summary of the roxctl scan
-    - name: TEST_OUTPUT
-      description: Result of the `roxctl image scan` check
+      description: Summary of the roxctl scan 
   steps:
     - name: report
-      image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
-
+      image: registry.access.redhat.com/ubi9/ubi-minimal:9.3-1552@sha256:06d06f15f7b641a78f2512c8817cbecaa1bf549488e273f5ac27ff1654ed33f0
       script: |
         #!/bin/bash  
         echo  "$(tasks.acs-image-scan.results.SCAN_OUTPUT)" | tee $(results.SCAN_OUTPUT.path)
-        echo  "$(tasks.acs-image-scan.results.TEST_OUTPUT)" | tee $(results.TEST_OUTPUT.path)
+        
