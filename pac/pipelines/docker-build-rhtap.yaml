@@ -24,6 +24,8 @@ spec:
           value: $(params.output-image)
         - name: build-task-status
           value: $(tasks.build-container.status)
+        - name: source-image-url
+          value: $(tasks.build-source-image.results.SOURCE_IMAGE_URL)
       taskRef:
         name: summary
   params:
@@ -72,9 +74,6 @@ spec:
       description: Build a source image.
       name: build-source-image
       type: string
-    - default: rox.stackrox.io:443
-      name: stackrox-endpoint
-      type: string
     - default: rox-api-token
       name: stackrox-secret
       type: string
@@ -87,6 +86,8 @@ spec:
       value: $(tasks.clone-repository.results.url)
     - name: CHAINS-GIT_COMMIT
       value: $(tasks.clone-repository.results.commit)
+    - name: ACS_SCAN_OUTPUT
+      value: $(tasks.acs-image-scan.results.SCAN_OUTPUT)
   tasks:
     - name: init
       params:
@@ -181,9 +182,7 @@ spec:
             - "false"
     - name: acs-image-check
       params:
-        - name: rox-central-endpoint
-          value: $(params.stackrox-endpoint)
-        - name: rox-api-token-secret-name
+        - name: rox-secret-name
           value: $(params.stackrox-secret)
         - name: image
           value: $(params.output-image)
@@ -197,9 +196,7 @@ spec:
         name: acs-image-check
     - name: acs-image-scan
       params:
-        - name: rox-central-endpoint
-          value: $(params.stackrox-endpoint)
-        - name: rox-api-token-secret-name
+        - name: rox-secret-name
           value: $(params.stackrox-secret)
         - name: image
           value: $(params.output-image)
@@ -214,14 +211,14 @@ spec:
         name: acs-image-scan
     - name: acs-deploy-check
       params:
-        - name: rox-central-endpoint
-          value: $(params.stackrox-endpoint)
-        - name: rox-api-token-secret-name
+        - name: rox-secret-name
           value: $(params.stackrox-secret)
+        - name: gitops-repo-url
+          value: $(params.git-url)-gitops
         - name: insecure-skip-tls-verify
           value: "true"
       runAfter:
-        - build-container
+        - update-deployment
       taskRef:
         kind: Task
         name: acs-deploy-check
