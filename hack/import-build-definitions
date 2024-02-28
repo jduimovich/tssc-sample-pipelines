@@ -26,9 +26,7 @@ OUTPUT_PIPELINES_DIR=$EXPORT_DIR/pipelines
 rm -rf $OUTPUT_TASKS_DIR
 mkdir -p $OUTPUT_TASKS_DIR
 rm -rf $OUTPUT_PIPELINES_DIR
-mkdir -p $OUTPUT_PIPELINES_DIR
-
-
+mkdir -p $OUTPUT_PIPELINES_DIR 
 
 if [ -d $IMPORT_PIPELINES_DIR/rhtap ]; then
   echo "Using RHTAP from Build definitions"
