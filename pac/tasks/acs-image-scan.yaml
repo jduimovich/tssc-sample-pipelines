@@ -84,10 +84,7 @@ spec:
         set_test_output_result SKIPPED "Task $(context.task.name) skipped: ACS API token not provided"
         exit 0
       fi
-
-      echo "Using rox central endpoint ${ROX_CENTRAL_ENDPOINT}"
-
-      echo "Download roxctl cli"
+ 
       if [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] ; then
         curl_insecure='--insecure'
       fi
@@ -102,8 +99,7 @@ spec:
         exit 1
       fi
       chmod +x ./roxctl  > /dev/null
-
-      echo "roxctl image scan"
+ 
 
       IMAGE=${PARAM_IMAGE}@${PARAM_IMAGE_DIGEST}
       ./roxctl image scan \
