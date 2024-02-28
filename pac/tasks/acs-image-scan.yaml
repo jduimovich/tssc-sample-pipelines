@@ -61,8 +61,7 @@ spec:
         local successes=${3:-0}
         local failures=${4:-0}
         local warnings=${5:-0}
-        echo "{\"result\":\"${result}\",\"timestamp\":\"${date}\",\"note\":\"${note}\",\"namespace\":\"default\",\"successes\":\"${successes}\",\"failures\":\"${failures}\",\"warnings\":\"${warnings}\"}" \
-          | tee $(results.TEST_OUTPUT.path)
+        echo "{\"result\":\"${result}\",\"timestamp\":\"${date}\",\"note\":\"${note}\",\"namespace\":\"default\",\"successes\":\"${successes}\",\"failures\":\"${failures}\",\"warnings\":\"${warnings}\"}" >  $(results.TEST_OUTPUT.path)
       }
 
       # Check if rox API enpoint is configured
@@ -108,8 +107,7 @@ spec:
         -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE" -o json --force \
         > roxctl_image_scan_output.json
       image_scan_err_code=$?
-      cat roxctl_image_scan_output.json
-      echo "---"
+      cat roxctl_image_scan_output.json 
       if [ $image_scan_err_code -ne 0 ]; then
         note='ACS image scan failed to process the image. See the task logs for more details.'
         echo $note
@@ -122,8 +120,8 @@ spec:
       high=$(cat roxctl_image_scan_output.json | grep -oP '(?<="IMPORTANT": )\d+')
       medium=$(cat roxctl_image_scan_output.json | grep -oP '(?<="MODERATE": )\d+')
       low=$(cat roxctl_image_scan_output.json | grep -oP '(?<="LOW": )\d+')
-      echo "{\"vulnerabilities\":{\"critical\":${critical},\"high\":${high},\"medium\":${medium},\"low\":${low}}}" | tee $(results.SCAN_OUTPUT.path)
-      echo "---"
+      echo "{\"vulnerabilities\":{\"critical\":${critical},\"high\":${high},\"medium\":${medium},\"low\":${low}}}"  > $(results.SCAN_OUTPUT.path)
+ 
       # Set TEST_OUTPUT result
       if [[ -n "$critical" && "$critical" -eq 0 && "$high" -eq 0 && "$medium" -eq 0 && "$low" -eq 0 ]]; then
         note="Task $(context.task.name) completed. No vulnerabilities found."
