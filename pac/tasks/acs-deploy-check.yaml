@@ -98,12 +98,12 @@ spec:
         # echo "Using rox central endpoint ${ROX_CENTRAL_ENDPOINT}"
 
         # Clone gitops repository
-        git clone $(params.gitops-repo-url) --single-branch --depth 1 gitops
+        git clone $(params.gitops-repo-url) --single-branch --depth 1 gitops  2>&1 >/dev/null 
         cd gitops
 
-        echo "Configuration"
-        echo "Directory = $(pwd)"
-        ls -al
+        # echo "Configuration"
+        # echo "Directory = $(pwd)"
+        # ls -al
 
         if [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] ; then
           curl_insecure='--insecure'
