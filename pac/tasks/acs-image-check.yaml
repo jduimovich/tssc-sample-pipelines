@@ -97,7 +97,7 @@ spec:
 
       # echo "Using rox central endpoint ${ROX_CENTRAL_ENDPOINT}"
 
-      echo "Download roxctl cli"
+      # echo "Download roxctl cli"
       if [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ]; then
         curl_insecure='--insecure'
       fi
