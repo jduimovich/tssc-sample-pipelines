@@ -31,9 +31,7 @@ spec:
       description: Summary of the roxctl scan
     - name: TEST_OUTPUT
       description: Result of the `roxctl deploy check` check
-  volumes:
-    - name: repository
-      emptyDir: {}
+  volumes: 
     - name: rox-secret
       secret:
         secretName: $(params.rox-secret-name)
