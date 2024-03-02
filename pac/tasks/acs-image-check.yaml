@@ -128,6 +128,7 @@ spec:
         echo -n "--insecure-skip-tls-verify") \
         -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE" --force \
         > roxctl_image_check_output.txt
+      cat roxctl_image_check_output.txt  
       cat roxctl_image_check_output.txt  > output-check
 
       # Set SCAN_OUTPUT result
@@ -155,7 +156,8 @@ spec:
   - name: report
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script: |
-      #!/usr/bin/env bash 
+      #!/usr/bin/env bash
+      ls -al  
       du -a /workspace
       cat /workspace/repository/output-check
   workspaces:

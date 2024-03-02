@@ -122,6 +122,7 @@ spec:
         -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE" -o json --force \
         > roxctl_image_scan_output.json
       image_scan_err_code=$?
+      cat roxctl_image_scan_output.json   
       cat roxctl_image_scan_output.json  > output-check
       if [ $image_scan_err_code -ne 0 ]; then
         note='ACS image scan failed to process the image. See the task logs for more details.'
@@ -148,5 +149,6 @@ spec:
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script: |
       #!/usr/bin/env bash 
+      ls -al 
       du -a /workspace
       cat /workspace/repository/output-check
