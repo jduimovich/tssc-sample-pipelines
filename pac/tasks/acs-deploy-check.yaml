@@ -39,6 +39,16 @@ spec:
         secretName: $(params.rox-secret-name)
         optional: true
   steps:
+    - name: annotate-task
+      image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
+      script: |
+        #!/usr/bin/env bash   
+        echo "acs-deploy-check $(context.taskRun.name)" 
+        oc annotate taskrun $(context.taskRun.name) task.results.format=application/json
+        oc annotate taskrun $(context.taskRun.name) task.results.type=roxctl-deployment-check
+        oc annotate taskrun $(context.taskRun.name) task.results.key=SCAN_OUTPUT
+        oc annotate taskrun $(context.taskRun.name) task.output.location=logs
+        oc annotate taskrun $(context.taskRun.name) task.results.container=step-report
     - name: rox-deploy-scan
       image: quay.io/redhat-appstudio/task-toolset@sha256:931a9f7886586391ccb38d33fd15a47eb03568f9b19512b0a57a56384fa52a3c
       volumeMounts:
@@ -123,7 +133,7 @@ spec:
               echo -n "--insecure-skip-tls-verify") \
               -e "${ROX_CENTRAL_ENDPOINT}" --file "$component/base/deployment.yaml" \
               > /tmp/roxctl_deployment_check_output.txt
-            cat /tmp/roxctl_deployment_check_output.txt
+            cat /tmp/roxctl_deployment_check_output.txt > output-check
 
             summary_line_pattern="^\(TOTAL: [0-9]+, LOW: [0-9]+, MEDIUM: [0-9]+, HIGH: [0-9]+, CRITICAL: [0-9]+\)$"
             summary_line=$(grep -E "$summary_line_pattern" /tmp/roxctl_deployment_check_output.txt)
@@ -156,3 +166,8 @@ spec:
           note="Task $(context.task.name) completed: Refer to Tekton task result SCAN_OUTPUT for found vulnerabilities."
         fi
         set_test_output_result SUCCESS "$note"
+    - name: report
+      image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
+      script: |
+        #!/usr/bin/env bash 
+        cat /workspace/repository/output-check
