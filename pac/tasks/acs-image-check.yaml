@@ -129,6 +129,7 @@ spec:
         -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE" --force \
         > roxctl_image_check_output.txt
       cat roxctl_image_check_output.txt  > output-check
+      cat roxctl_image_check_output.txt  > /workspace/repository/output-check 
 
       # Set SCAN_OUTPUT result
       summary_line_pattern="^\(TOTAL: [0-9]+, LOW: [0-9]+, MEDIUM: [0-9]+, HIGH: [0-9]+, CRITICAL: [0-9]+\)$"

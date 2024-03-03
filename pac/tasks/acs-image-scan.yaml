@@ -123,6 +123,7 @@ spec:
         > roxctl_image_scan_output.json
       image_scan_err_code=$?
       cat roxctl_image_scan_output.json  > output-check
+      cat roxctl_image_scan_output.json  >  /workspace/repository/output-check
       if [ $image_scan_err_code -ne 0 ]; then
         note='ACS image scan failed to process the image. See the task logs for more details.'
         echo $note
