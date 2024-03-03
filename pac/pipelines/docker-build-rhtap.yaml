@@ -209,6 +209,9 @@ spec:
         - build-container
       taskRef:
         name: acs-image-check
+      workspaces:
+        - name: repository
+          workspace: workspace
     - name: acs-image-scan
       params:
         - name: rox-secret-name
@@ -224,6 +227,9 @@ spec:
       taskRef:
         kind: Task
         name: acs-image-scan
+      workspaces:
+        - name: repository
+          workspace: workspace
     - name: acs-deploy-check
       params:
         - name: rox-secret-name
@@ -237,6 +243,9 @@ spec:
       taskRef:
         kind: Task
         name: acs-deploy-check
+      workspaces:
+        - name: repository
+          workspace: workspace
     - name: update-deployment
       params:
         - name: gitops-repo-url

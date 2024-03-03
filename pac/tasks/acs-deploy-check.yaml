@@ -31,9 +31,7 @@ spec:
       description: Summary of the roxctl scan
     - name: TEST_OUTPUT
       description: Result of the `roxctl deploy check` check
-  volumes:
-    - name: repository
-      emptyDir: {}
+  volumes: 
     - name: rox-secret
       secret:
         secretName: $(params.rox-secret-name)
@@ -48,7 +46,7 @@ spec:
         oc annotate taskrun $(context.taskRun.name) task.results.type=roxctl-deployment-check
         oc annotate taskrun $(context.taskRun.name) task.results.key=SCAN_OUTPUT
         oc annotate taskrun $(context.taskRun.name) task.output.location=logs
-        oc annotate taskrun $(context.taskRun.name) task.results.container=step-rox-deploy-scan
+        oc annotate taskrun $(context.taskRun.name) task.results.container=step-report
     - name: rox-deploy-scan
       image: quay.io/redhat-appstudio/task-toolset@sha256:931a9f7886586391ccb38d33fd15a47eb03568f9b19512b0a57a56384fa52a3c
       volumeMounts:
@@ -72,7 +70,7 @@ spec:
           local failures=${4:-0}
           local warnings=${5:-0}
           echo "{\"result\":\"${result}\",\"timestamp\":\"${date}\",\"note\":\"${note}\",\"namespace\":\"default\",\"successes\":\"${successes}\",\"failures\":\"${failures}\",\"warnings\":\"${warnings}\"}" \
-           > $(results.TEST_OUTPUT.path)
+            | tee $(results.TEST_OUTPUT.path)
         }
 
         # Check if rox API enpoint is configured
@@ -94,16 +92,16 @@ spec:
           set_test_output_result SKIPPED "Task $(context.task.name) skipped: ACS API token not provided"
           exit 0
         fi
- 
-        # echo "Using rox central endpoint ${ROX_CENTRAL_ENDPOINT}"
+
+        echo "Using rox central endpoint ${ROX_CENTRAL_ENDPOINT}"
 
         # Clone gitops repository
-        git clone $(params.gitops-repo-url) --single-branch --depth 1 gitops  2>&1 >/dev/null 
+        git clone $(params.gitops-repo-url) --single-branch --depth 1 gitops
         cd gitops
 
-        # echo "Configuration"
-        # echo "Directory = $(pwd)"
-        # ls -al
+        echo "Configuration"
+        echo "Directory = $(pwd)"
+        ls -al
 
         if [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] ; then
           curl_insecure='--insecure'
@@ -125,15 +123,15 @@ spec:
         medium_total=0
         low_total=0
         for component in components/*; do
-          #echo $component
+          echo $component
           if [ -f $component/base/deployment.yaml ]; then
-            #echo "ROXCTL on $component/base/deployment.yaml"
+            echo "ROXCTL on $component/base/deployment.yaml"
             ./roxctl deployment check \
               $( [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] && \
               echo -n "--insecure-skip-tls-verify") \
               -e "${ROX_CENTRAL_ENDPOINT}" --file "$component/base/deployment.yaml" \
               > /tmp/roxctl_deployment_check_output.txt
-            cat /tmp/roxctl_deployment_check_output.txt
+            cat /tmp/roxctl_deployment_check_output.txt > output-check
 
             summary_line_pattern="^\(TOTAL: [0-9]+, LOW: [0-9]+, MEDIUM: [0-9]+, HIGH: [0-9]+, CRITICAL: [0-9]+\)$"
             summary_line=$(grep -E "$summary_line_pattern" /tmp/roxctl_deployment_check_output.txt)
@@ -142,7 +140,7 @@ spec:
               high=$(echo $summary_line | grep -oP '(?<=HIGH: )\d+')
               medium=$(echo $summary_line | grep -oP '(?<=MEDIUM: )\d+')
               low=$(echo $summary_line | grep -oP '(?<=LOW: )\d+')
-              #echo "{\"vulnerabilities\":{\"critical\":${critical},\"high\":${high},\"medium\":${medium},\"low\":${low}}}"
+              echo "{\"vulnerabilities\":{\"critical\":${critical},\"high\":${high},\"medium\":${medium},\"low\":${low}}}"
               ((critical_total += critical))
               ((high_total += high))
               ((medium_total += medium))
@@ -155,8 +153,9 @@ spec:
           fi
         done
 
-        # Set SCAN_OUTPUT result 
-        echo "{\"vulnerabilities\":{\"critical\":${critical_total},\"high\":${high_total},\"medium\":${medium_total},\"low\":${low_total}}}" > $(results.SCAN_OUTPUT.path)
+        # Set SCAN_OUTPUT result
+        echo "Total:"
+        echo "{\"vulnerabilities\":{\"critical\":${critical_total},\"high\":${high_total},\"medium\":${medium_total},\"low\":${low_total}}}" | tee $(results.SCAN_OUTPUT.path)
 
         # Set TEST_OUTPUT result
         if [[ -n "$critical_total" && "$critical_total" -eq 0 && "$high_total" -eq 0 && "$medium_total" -eq 0 && "$low_total" -eq 0 ]]; then
@@ -165,3 +164,11 @@ spec:
           note="Task $(context.task.name) completed: Refer to Tekton task result SCAN_OUTPUT for found vulnerabilities."
         fi
         set_test_output_result SUCCESS "$note"
+    - name: report
+      image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
+      script: |
+        #!/usr/bin/env bash 
+        cat /workspace/repository/output-check
+    workspaces:
+    - description: The git repo will be cloned onto the volume backing this Workspace.
+      name: repository
