@@ -154,6 +154,10 @@ spec:
           note="Task $(context.task.name) completed: Refer to Tekton task result SCAN_OUTPUT for found vulnerabilities."
         fi
         set_test_output_result SUCCESS "$note"
+        
+        ls -al
+        pwd
+        du /workspace
     - name: report
       image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
       volumeMounts:
