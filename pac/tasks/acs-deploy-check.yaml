@@ -39,9 +39,7 @@ spec:
       script: "#!/usr/bin/env bash   \necho \"acs-deploy-check $(context.taskRun.name)\" \noc annotate taskrun $(context.taskRun.name) task.results.format=application/json\noc annotate taskrun $(context.taskRun.name) task.results.type=roxctl-deployment-check\noc annotate taskrun $(context.taskRun.name) task.results.key=SCAN_OUTPUT\noc annotate taskrun $(context.taskRun.name) task.output.location=logs\noc annotate taskrun $(context.taskRun.name) task.results.container=step-report\n"
     - name: rox-deploy-scan
       image: quay.io/redhat-appstudio/task-toolset@sha256:931a9f7886586391ccb38d33fd15a47eb03568f9b19512b0a57a56384fa52a3c
-      volumeMounts:
-        - name: repository
-          mountPath: /workspace/repository
+      volumeMounts: 
         - name: rox-secret
           mountPath: /rox-secret
       workingDir: /workspace/repository
