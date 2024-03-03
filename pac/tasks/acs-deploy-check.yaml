@@ -160,4 +160,9 @@ spec:
         - name: repository
           mountPath: /workspace/repository 
       workingDir: /workspace/repository
-      script: "#!/usr/bin/env bash \ncat /workspace/repository/output-check\n"
+      script:  |
+        #!/usr/bin/env bash 
+        ls -al
+        pwd
+        du /workspace
+        cat /workspace/repository/output-check
