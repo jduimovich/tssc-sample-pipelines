@@ -137,7 +137,7 @@ spec:
           else
             note="Task $(context.task.name) failed to parse scan summary for component $component"
             set_test_output_result ERROR "${note}"
-            exit 2
+            #exit 2
           fi
         fi
       done

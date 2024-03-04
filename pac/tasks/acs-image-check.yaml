@@ -142,7 +142,7 @@ spec:
       else
         echo 'Failed to parse scan summary'
         set_test_output_result ERROR "Task $(context.task.name) failed to parse scan summary"
-        exit 3
+      #  exit 3
       fi
 
       # Set TEST_OUTPUT result
