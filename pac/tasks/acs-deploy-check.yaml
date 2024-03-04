@@ -127,7 +127,7 @@ spec:
             -e "${ROX_CENTRAL_ENDPOINT}" --file "$component/base/deployment.yaml" --output json \
             > /tmp/roxctl_deployment_check_output.txt
  
-          cat /tmp/roxctl_deployment_check_output.txt > /workspace/repository/output-check
+          cat /tmp/roxctl_deployment_check_output.txt > /workspace/repository/deploy-check
 
           summary_line_pattern="^\(TOTAL: [0-9]+, LOW: [0-9]+, MEDIUM: [0-9]+, HIGH: [0-9]+, CRITICAL: [0-9]+\)$"
           summary_line=$(grep -E "$summary_line_pattern" /tmp/roxctl_deployment_check_output.txt)
@@ -165,7 +165,7 @@ spec:
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script:  |
       #!/usr/bin/env bash  
-      cat /workspace/repository/output-check
+      cat /workspace/repository/deploy-check
   workspaces:
   - description: The git repo will be cloned onto the volume backing this Workspace.
     name: repository

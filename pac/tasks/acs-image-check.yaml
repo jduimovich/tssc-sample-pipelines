@@ -128,7 +128,7 @@ spec:
         echo -n "--insecure-skip-tls-verify") \
         -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE"  --output json \
         > roxctl_image_check_output.txt 
-      cat roxctl_image_check_output.txt  > /workspace/repository/output-check 
+      cat roxctl_image_check_output.txt  > /workspace/repository/image-check 
 
       # Set SCAN_OUTPUT result
       summary_line_pattern="^\(TOTAL: [0-9]+, LOW: [0-9]+, MEDIUM: [0-9]+, HIGH: [0-9]+, CRITICAL: [0-9]+\)$"
@@ -156,7 +156,7 @@ spec:
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script: |
       #!/usr/bin/env bash  
-      cat /workspace/repository/output-check
+      cat /workspace/repository/image-check
   workspaces:
   - description: The git repo will be cloned onto the volume backing this Workspace.
     name: repository
