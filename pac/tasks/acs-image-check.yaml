@@ -126,7 +126,7 @@ spec:
       ./roxctl image check \
         $( [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] && \
         echo -n "--insecure-skip-tls-verify") \
-        -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE" --force --output json \
+        -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE"  --output json \
         > roxctl_image_check_output.txt 
       cat roxctl_image_check_output.txt  > /workspace/repository/output-check 
 
