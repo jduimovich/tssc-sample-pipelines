@@ -23,11 +23,6 @@ spec:
       description: |
         When set to `"true"`, skip verifying the TLS certs of the Central
         endpoint.  Defaults to `"false"`.
-  results:
-    - name: SCAN_OUTPUT
-      description: Summary of the roxctl scan
-    - name: TEST_OUTPUT
-      description: Result of the `roxctl deploy check` check
   volumes:
     - name: rox-secret
       secret:
@@ -117,43 +112,12 @@ spec:
           ./roxctl deployment check \
             $( [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] && \
             echo -n "--insecure-skip-tls-verify") \
-            -e "${ROX_CENTRAL_ENDPOINT}" --file "$component/base/deployment.yaml" \
-            > /tmp/roxctl_deployment_check_output.txt
+            -e "${ROX_CENTRAL_ENDPOINT}" --file "$component/base/deployment.yaml" --output json \
+            > /tmp/roxctl_deployment_check_output.json
  
-          cat /tmp/roxctl_deployment_check_output.txt > /workspace/repository/output-check
-
-          summary_line_pattern="^\(TOTAL: [0-9]+, LOW: [0-9]+, MEDIUM: [0-9]+, HIGH: [0-9]+, CRITICAL: [0-9]+\)$"
-          summary_line=$(grep -E "$summary_line_pattern" /tmp/roxctl_deployment_check_output.txt)
-          if [[ -n "$summary_line" ]]; then
-            critical=$(echo $summary_line | grep -oP '(?<=CRITICAL: )\d+')
-            high=$(echo $summary_line | grep -oP '(?<=HIGH: )\d+')
-            medium=$(echo $summary_line | grep -oP '(?<=MEDIUM: )\d+')
-            low=$(echo $summary_line | grep -oP '(?<=LOW: )\d+')
-            echo "{\"vulnerabilities\":{\"critical\":${critical},\"high\":${high},\"medium\":${medium},\"low\":${low}}}"
-            ((critical_total += critical))
-            ((high_total += high))
-            ((medium_total += medium))
-            ((low_total += low))
-          else
-            note="Task $(context.task.name) failed to parse scan summary for component $component"
-            set_test_output_result ERROR "${note}"
-            exit 2
-          fi
+          cat /tmp/roxctl_deployment_check_output.json > /workspace/repository/output-check
         fi
-      done
-
-      # Set SCAN_OUTPUT result
-      echo "Total:"
-      echo "{\"vulnerabilities\":{\"critical\":${critical_total},\"high\":${high_total},\"medium\":${medium_total},\"low\":${low_total}}}" | tee $(results.SCAN_OUTPUT.path)
-
-      # Set TEST_OUTPUT result
-      if [[ -n "$critical_total" && "$critical_total" -eq 0 && "$high_total" -eq 0 && "$medium_total" -eq 0 && "$low_total" -eq 0 ]]; then
-        note="Task $(context.task.name) completed. No vulnerabilities found."
-      else
-        note="Task $(context.task.name) completed: Refer to Tekton task result SCAN_OUTPUT for found vulnerabilities."
-      fi
-      set_test_output_result SUCCESS "$note"
-       
+      done  
   - name: report
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script:  |
