@@ -121,8 +121,8 @@ spec:
         echo -n "--insecure-skip-tls-verify") \
         -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE" -o json --force \
         > roxctl_image_scan_output.json
-      image_scan_err_code=$?
-      cat roxctl_image_scan_output.json  > /workspace/repository/image-scan
+      image_scan_err_code=$? 
+      cat roxctl_image_scan_output.json  >  /workspace/repository/image-scan
       if [ $image_scan_err_code -ne 0 ]; then
         note='ACS image scan failed to process the image. See the task logs for more details.'
         echo $note
@@ -143,9 +143,12 @@ spec:
       else
         note="Task $(context.task.name) completed: Refer to Tekton task result SCAN_OUTPUT for found vulnerabilities."
       fi
-      set_test_output_result SUCCESS "$note"
+      set_test_output_result SUCCESS "$note"  
   - name: report
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script: |
-      #!/usr/bin/env bash 
+      #!/usr/bin/env bash  
       cat /workspace/repository/image-scan
+  workspaces:
+  - description: The git repo will be cloned onto the volume backing this Workspace.
+    name: repository

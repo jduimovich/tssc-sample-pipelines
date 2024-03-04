@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: acs-image-scan
+  name: acs-image-check
 spec:
   description: Policy check an image with StackRox/RHACS This tasks allows you to
     check an image against build-time policies and apply enforcement to fail builds.
@@ -17,21 +17,21 @@ spec:
       type: string
       description: |
         Full name of image to scan (example -- gcr.io/rox/sample:5.0-rc1)
-    - name: image-digest
-      type: string
-      description: |
-        Digest of the image to scan
     - name: insecure-skip-tls-verify
       type: string
       default: "false"
       description: |
         When set to `"true"`, skip verifying the TLS certs of the Central
         endpoint.  Defaults to `"false"`.
+    - name: image-digest
+      type: string
+      description: |
+        Digest of the image
   results:
     - name: SCAN_OUTPUT
       description: Summary of the roxctl scan
     - name: TEST_OUTPUT
-      description: Result of the `roxctl image scan` check
+      description: Result of the `roxctl image check` check
   volumes:
     - name: rox-secret
       secret:
@@ -42,13 +42,13 @@ spec:
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script: |
       #!/usr/bin/env bash   
-      echo "acs-image-scan $(context.taskRun.name)" 
+      echo "acs-image-check $(context.taskRun.name)" 
       oc annotate taskrun $(context.taskRun.name) task.results.format=application/json
-      oc annotate taskrun $(context.taskRun.name) task.results.type=roxctl-image-scan
+      oc annotate taskrun $(context.taskRun.name) task.results.type=roxctl-image-check
       oc annotate taskrun $(context.taskRun.name) task.results.key=SCAN_OUTPUT
       oc annotate taskrun $(context.taskRun.name) task.output.location=logs
       oc annotate taskrun $(context.taskRun.name) task.results.container=step-report
-  - name: rox-image-scan
+  - name: rox-image-check
     image: registry.access.redhat.com/ubi8-minimal@sha256:d8b81a38b5ad9694742ea03159d3217cd2dde3997b1ee53bbb53c33dd67be7b7
     volumeMounts:
       - name: rox-secret
@@ -98,12 +98,12 @@ spec:
       echo "Using rox central endpoint ${ROX_CENTRAL_ENDPOINT}"
 
       echo "Download roxctl cli"
-      if [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] ; then
+      if [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ]; then
         curl_insecure='--insecure'
       fi
       curl $curl_insecure -s -L -H "Authorization: Bearer $ROX_API_TOKEN" \
         "https://${ROX_CENTRAL_ENDPOINT}/api/cli/download/roxctl-linux" \
-        --output ./roxctl  \
+        --output ./roxctl \
         > /dev/null
       if [ $? -ne 0 ]; then
         note='Failed to download roxctl'
@@ -111,31 +111,39 @@ spec:
         set_test_output_result ERROR "$note"
         exit 1
       fi
-      chmod +x ./roxctl  > /dev/null
-
-      echo "roxctl image scan"
-
-      IMAGE=${PARAM_IMAGE}@${PARAM_IMAGE_DIGEST}
-      ./roxctl image scan \
-        $( [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] && \
-        echo -n "--insecure-skip-tls-verify") \
-        -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE" -o json --force \
-        > roxctl_image_scan_output.json
-      image_scan_err_code=$?
-      cat roxctl_image_scan_output.json  > /workspace/repository/image-scan
-      if [ $image_scan_err_code -ne 0 ]; then
-        note='ACS image scan failed to process the image. See the task logs for more details.'
-        echo $note
+      received_filesize=$(stat -c%s ./roxctl)
+      if (( $received_filesize < 10000 )); then
+        # Responce from ACS server is not a binary but error message
+        cat ./roxctl
+        note='Failed to download roxctl'
         set_test_output_result ERROR "$note"
         exit 2
       fi
+      chmod +x ./roxctl  > /dev/null
+
+      echo "roxctl image check"
+      IMAGE=${PARAM_IMAGE}@${PARAM_IMAGE_DIGEST}
+      ./roxctl image check \
+        $( [ "${PARAM_INSECURE_SKIP_TLS_VERIFY}" = "true" ] && \
+        echo -n "--insecure-skip-tls-verify") \
+        -e "${ROX_CENTRAL_ENDPOINT}" --image "$IMAGE"  --output json \
+        > roxctl_image_check_output.txt 
+      cat roxctl_image_check_output.txt  > /workspace/repository/image-check 
 
       # Set SCAN_OUTPUT result
-      critical=$(cat roxctl_image_scan_output.json | grep -oP '(?<="CRITICAL": )\d+')
-      high=$(cat roxctl_image_scan_output.json | grep -oP '(?<="IMPORTANT": )\d+')
-      medium=$(cat roxctl_image_scan_output.json | grep -oP '(?<="MODERATE": )\d+')
-      low=$(cat roxctl_image_scan_output.json | grep -oP '(?<="LOW": )\d+')
-      echo "{\"vulnerabilities\":{\"critical\":${critical},\"high\":${high},\"medium\":${medium},\"low\":${low}}}" | tee $(results.SCAN_OUTPUT.path)
+      summary_line_pattern="^\(TOTAL: [0-9]+, LOW: [0-9]+, MEDIUM: [0-9]+, HIGH: [0-9]+, CRITICAL: [0-9]+\)$"
+      summary_line=$(grep -E "$summary_line_pattern" roxctl_image_check_output.txt)
+      if [[ -n "$summary_line" ]]; then
+        critical=$(echo $summary_line | grep -oP '(?<=CRITICAL: )\d+')
+        high=$(echo $summary_line | grep -oP '(?<=HIGH: )\d+')
+        medium=$(echo $summary_line | grep -oP '(?<=MEDIUM: )\d+')
+        low=$(echo $summary_line | grep -oP '(?<=LOW: )\d+')
+        echo "{\"vulnerabilities\":{\"critical\":${critical},\"high\":${high},\"medium\":${medium},\"low\":${low}}}" | tee $(results.SCAN_OUTPUT.path)
+      else
+        echo 'Failed to parse scan summary'
+        set_test_output_result ERROR "Task $(context.task.name) failed to parse scan summary"
+      #  exit 3
+      fi
 
       # Set TEST_OUTPUT result
       if [[ -n "$critical" && "$critical" -eq 0 && "$high" -eq 0 && "$medium" -eq 0 && "$low" -eq 0 ]]; then
@@ -143,9 +151,12 @@ spec:
       else
         note="Task $(context.task.name) completed: Refer to Tekton task result SCAN_OUTPUT for found vulnerabilities."
       fi
-      set_test_output_result SUCCESS "$note"
+      set_test_output_result SUCCESS "$note" 
   - name: report
     image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     script: |
-      #!/usr/bin/env bash 
-      cat /workspace/repository/image-scan
+      #!/usr/bin/env bash  
+      cat /workspace/repository/image-check
+  workspaces:
+  - description: The git repo will be cloned onto the volume backing this Workspace.
+    name: repository
