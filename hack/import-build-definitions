@@ -76,8 +76,8 @@ for pipeline in $OUTPUT_PIPELINES_DIR/* ;  do
   FINALLY=$(yq .spec.finally.[].taskRef.name $pipeline )
   # Temporarily keep some to ensure existing templates work
   # until they have been merged for backwards compatibilty  
-  KEEP="clair-scan sbom-json-check source-build"
-  for task in $TASKS $FINALLY $KEEP
+  EXTRA="verify-enterprise-contract"
+  for task in $TASKS $FINALLY $EXTRA
   do  
     if [ $CREATE_CATALOG == "true" ]; then 
       echo "Catalog "  
