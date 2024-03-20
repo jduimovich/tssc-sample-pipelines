@@ -102,6 +102,11 @@ done
 echo
 echo "update-pipelinerun-imports" 
 bash $SCRIPTDIR/update-pipelinerun-imports
-  
+
+# hack for show-sbom issue
+echo "WARNING RESETTING show-sbom to old version"
+echo "New version is broken"
+cp $OUTPUT_TASKS_DIR/show-sbom.yaml $OUTPUT_TASKS_DIR/show-sbom-rhdh.yaml
+yq -i ".metadata.name=\"show-sbom-rhdh\"" $OUTPUT_TASKS_DIR/show-sbom-rhdh.yaml 
 
  
