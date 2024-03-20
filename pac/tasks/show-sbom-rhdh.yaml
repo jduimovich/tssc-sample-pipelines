@@ -24,16 +24,16 @@ spec:
   - description: Placeholder result meant to make RHDH identify this task as the producer of the SBOM logs.
     name: LINK_TO_SBOM
   steps:
-  - name: annotate-task
-    image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
-    script: |
-      #!/usr/bin/env bash
+  # - name: annotate-task
+  #   image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
+  #   script: |
+  #     #!/usr/bin/env bash
 
-      # When this task is used in a pipelineRun triggered by Pipelines as Code, the annotations will be cleared,
-      # so we're re-adding them here
-      oc annotate taskrun $(context.taskRun.name) task.results.format=application/text
-      oc annotate taskrun $(context.taskRun.name) task.results.key=LINK_TO_SBOM
-      oc annotate taskrun $(context.taskRun.name) task.output.location=results
+  #     # When this task is used in a pipelineRun triggered by Pipelines as Code, the annotations will be cleared,
+  #     # so we're re-adding them here
+  #     oc annotate taskrun $(context.taskRun.name) task.results.format=application/text
+  #     oc annotate taskrun $(context.taskRun.name) task.results.key=LINK_TO_SBOM
+  #     oc annotate taskrun $(context.taskRun.name) task.output.location=results
   - name: show-sbom
     image: registry.redhat.io/rhtas-tech-preview/cosign-rhel9@sha256:151f4a1e721b644bafe47bf5bfb8844ff27b95ca098cc37f3f6cbedcda79a897
     env:

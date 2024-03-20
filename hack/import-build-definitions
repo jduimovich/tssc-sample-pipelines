@@ -77,7 +77,7 @@ for pipeline in $OUTPUT_PIPELINES_DIR/* ;  do
   FINALLY=$(yq .spec.finally.[].taskRef.name $pipeline )
   # Temporarily keep some to ensure existing templates work
   # until they have been merged for backwards compatibilty  
-  KEEP=""
+  KEEP="show-sbom"
   
   echo "Tasks referenced from $(basename $pipeline):" 
   for task in $TASKS $FINALLY $KEEP
