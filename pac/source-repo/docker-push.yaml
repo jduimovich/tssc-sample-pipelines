@@ -33,7 +33,7 @@ spec:
     - name: event-type
       value: '{{event_type}}'
     - name: gitops-auth-secret-name
-      value: {{values.gitopsSecretName}} 
+      value: {{ values.gitopsSecretName }}
   pipelineRef:
     name: docker-build-rhtap
   workspaces:
