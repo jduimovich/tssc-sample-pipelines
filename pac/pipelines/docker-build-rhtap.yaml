@@ -158,6 +158,14 @@ spec:
       workspaces:
         - name: source
           workspace: workspace
+    - name: apply-tags
+      params:
+        - name: IMAGE
+          value: $(tasks.build-container.results.IMAGE_URL)
+      runAfter:
+        - build-container
+      taskRef:
+        name: apply-tags
     - name: acs-image-check
       params:
         - name: rox-secret-name
