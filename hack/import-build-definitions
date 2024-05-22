@@ -103,3 +103,4 @@ echo
 echo "update-pipelinerun-imports" 
 bash $SCRIPTDIR/update-pipelinerun-imports
 bash $SCRIPTDIR/patch-tasks
+bash $SCRIPTDIR/list-task-images
