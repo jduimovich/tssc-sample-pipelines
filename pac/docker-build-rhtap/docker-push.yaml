@@ -4,18 +4,19 @@ metadata:
   name: {{ values.name }}-on-push
   annotations:
     pipelinesascode.tekton.dev/on-event: "[push]"
-    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-target-branch: "[{{ values.defaultBranch }}]"
     pipelinesascode.tekton.dev/max-keep-runs: "2"
     pipelinesascode.tekton.dev/pipeline: "{{values.rawUrl}}/pac/pipelines/docker-build-rhtap.yaml"
     pipelinesascode.tekton.dev/task-0: "{{values.rawUrl}}/pac/tasks/init.yaml"
     pipelinesascode.tekton.dev/task-1: "{{values.rawUrl}}/pac/tasks/git-clone.yaml"
     pipelinesascode.tekton.dev/task-2: "{{values.rawUrl}}/pac/tasks/buildah-rhtap.yaml"
-    pipelinesascode.tekton.dev/task-3: "{{values.rawUrl}}/pac/tasks/acs-image-check.yaml"
-    pipelinesascode.tekton.dev/task-4: "{{values.rawUrl}}/pac/tasks/acs-image-scan.yaml"
-    pipelinesascode.tekton.dev/task-5: "{{values.rawUrl}}/pac/tasks/acs-deploy-check.yaml"
-    pipelinesascode.tekton.dev/task-6: "{{values.rawUrl}}/pac/tasks/update-deployment.yaml"
-    pipelinesascode.tekton.dev/task-7: "{{values.rawUrl}}/pac/tasks/show-sbom-rhdh.yaml"
-    pipelinesascode.tekton.dev/task-8: "{{values.rawUrl}}/pac/tasks/summary.yaml"
+    pipelinesascode.tekton.dev/task-3: "{{values.rawUrl}}/pac/tasks/apply-tags.yaml"
+    pipelinesascode.tekton.dev/task-4: "{{values.rawUrl}}/pac/tasks/acs-image-check.yaml"
+    pipelinesascode.tekton.dev/task-5: "{{values.rawUrl}}/pac/tasks/acs-image-scan.yaml"
+    pipelinesascode.tekton.dev/task-6: "{{values.rawUrl}}/pac/tasks/acs-deploy-check.yaml"
+    pipelinesascode.tekton.dev/task-7: "{{values.rawUrl}}/pac/tasks/update-deployment.yaml"
+    pipelinesascode.tekton.dev/task-8: "{{values.rawUrl}}/pac/tasks/show-sbom-rhdh.yaml"
+    pipelinesascode.tekton.dev/task-9: "{{values.rawUrl}}/pac/tasks/summary.yaml"
 spec:
   params:
     - name: dockerfile
