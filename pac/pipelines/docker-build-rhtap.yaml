@@ -173,6 +173,23 @@ spec:
         - build-container
       taskRef:
         name: apply-tags
+    - name: push-dockerfile
+      params:
+        - name: IMAGE
+          value: $(tasks.build-container.results.IMAGE_URL)
+        - name: IMAGE_DIGEST
+          value: $(tasks.build-container.results.IMAGE_DIGEST)
+        - name: DOCKERFILE
+          value: $(params.dockerfile)
+        - name: CONTEXT
+          value: $(params.path-context)
+      runAfter:
+        - build-container
+      taskRef:
+        name: push-dockerfile
+      workspaces:
+        - name: workspace
+          workspace: workspace
     - name: acs-image-check
       params:
         - name: rox-secret-name
