@@ -84,6 +84,11 @@ spec:
     - get-images-to-verify
     taskRef:
       name: verify-enterprise-contract
+    when:
+    - input: $(tasks.get-images-to-verify.results.IMAGES_TO_VERIFY)
+      operator: notin
+      values:
+      - ""
   - name: get-images-to-upload-sbom
     params:
     - name: TARGET_BRANCH
@@ -115,6 +120,11 @@ spec:
     - get-images-to-upload-sbom
     taskRef:
       name: download-sbom-from-url-in-attestation
+    when:
+    - input: $(tasks.get-images-to-upload-sbom.results.IMAGES_TO_VERIFY)
+      operator: notin
+      values:
+      - ""
     workspaces:
     - name: sboms
       workspace: workspace
@@ -128,6 +138,11 @@ spec:
     - download-sboms
     taskRef:
       name: upload-sbom-to-trustification
+    when:
+    - input: $(tasks.get-images-to-upload-sbom.results.IMAGES_TO_VERIFY)
+      operator: notin
+      values:
+      - ""
     workspaces:
     - name: sboms
       workspace: workspace
