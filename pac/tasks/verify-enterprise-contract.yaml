@@ -14,6 +14,8 @@ spec:
   - description: |
       Spec section of an ApplicationSnapshot resource. Not all fields of the
       resource are required. A minimal example:
+
+      ```json
         {
           "components": [
             {
@@ -21,7 +23,9 @@ spec:
             }
           ]
         }
-      Each "containerImage" in the "components" array is validated.
+      ```
+
+      Each `containerImage` in the `components` array is validated.
     name: IMAGES
     type: string
   - default: enterprise-contract-service/default
@@ -29,6 +33,8 @@ spec:
       Name of the policy configuration (EnterpriseContractPolicy
       resource) to use. `namespace/name` or `name` syntax supported. If
       namespace is omitted the namespace where the task runs is used.
+      You can also specify a policy configuration using a git url, e.g.
+      `github.com/conforma/config//slsa3`.
     name: POLICY_CONFIGURATION
     type: string
   - default: ""
@@ -55,17 +61,26 @@ spec:
       with external services. This is useful when using the integrated registry
       and a local instance of Rekor on a development cluster which may use
       certificates issued by a not-commonly trusted root CA. In such cases,
-      "/var/run/secrets/kubernetes.io/serviceaccount" is a good value. Multiple
-      paths can be provided by using the ":" separator.
+      `/var/run/secrets/kubernetes.io/serviceaccount` is a good value. Multiple
+      paths can be provided by using the `:` separator.
     name: SSL_CERT_DIR
     type: string
+  - default: trusted-ca
+    description: The name of the ConfigMap to read CA bundle data from.
+    name: CA_TRUST_CONFIGMAP_NAME
+    type: string
+  - default: ca-bundle.crt
+    description: The name of the key in the ConfigMap that contains the CA bundle
+      data.
+    name: CA_TRUST_CONFIG_MAP_KEY
+    type: string
   - default: "true"
-    description: Include rule titles and descriptions in the output. Set to "false"
+    description: Include rule titles and descriptions in the output. Set to `"false"`
       to disable it.
     name: INFO
     type: string
   - default: "true"
-    description: Fail the task if policy fails. Set to "false" to disable it.
+    description: Fail the task if policy fails. Set to `"false"` to disable it.
     name: STRICT
     type: string
   - default: /tekton/home
@@ -76,6 +91,35 @@ spec:
     description: Run policy checks with the provided time.
     name: EFFECTIVE_TIME
     type: string
+  - default: ""
+    description: Merge additional Rego variables into the policy data. Use syntax
+      "key=value,key2=value2..."
+    name: EXTRA_RULE_DATA
+    type: string
+  - default: ""
+    description: |
+      This param is deprecated and will be removed in future. Its value is ignored. EC will be run without a timeout. (If you do want to apply a timeout use the Tekton task timeout.)
+    name: TIMEOUT
+    type: string
+  - default: "1"
+    description: Number of parallel workers to use for policy evaluation.
+    name: WORKERS
+    type: string
+  - default: "false"
+    description: Reduce the Snapshot to only the component whose build caused the
+      Snapshot to be created
+    name: SINGLE_COMPONENT
+    type: string
+  - default: unknown
+    description: |
+      Name, including kind, of the Kubernetes resource to query for labels when single component mode is enabled, e.g. pr/somepipeline.
+    name: SINGLE_COMPONENT_CUSTOM_RESOURCE
+    type: string
+  - default: ""
+    description: |
+      Kubernetes namespace where the SINGLE_COMPONENT_NAME is found. Only used when single component mode is enabled.
+    name: SINGLE_COMPONENT_CUSTOM_RESOURCE_NS
+    type: string
   results:
   - description: Short summary of the policy evaluation for each image
     name: TEST_OUTPUT
@@ -84,34 +128,44 @@ spec:
     - name: HOME
       value: $(params.HOMEDIR)
   steps:
-  - args:
-    - version
-    command:
-    - ec
-    image: registry.redhat.io/rhtas/ec-rhel9:0.2
-    name: version
   - env:
     - name: TUF_MIRROR
       value: $(params.TUF_MIRROR)
-    image: registry.redhat.io/rhtas/ec-rhel9:0.2
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
     name: initialize-tuf
     script: |-
       set -euo pipefail
 
       if [[ -z "${TUF_MIRROR:-}" ]]; then
-          echo 'TUF_MIRROR not set. Skipping TUF root initialization.'
+          echo 'TUF_MIRROR parameter not provided. Skipping TUF root initialization.'
           exit
       fi
 
       echo 'Initializing TUF root...'
-      cosign initialize --mirror "${TUF_MIRROR}" --root "${TUF_MIRROR}/root.json"
+      ec sigstore initialize --mirror "${TUF_MIRROR}" --root "${TUF_MIRROR}/root.json"
       echo 'Done!'
+  - command:
+    - reduce-snapshot.sh
+    env:
+    - name: SNAPSHOT
+      value: $(params.IMAGES)
+    - name: SINGLE_COMPONENT
+      value: $(params.SINGLE_COMPONENT)
+    - name: CUSTOM_RESOURCE
+      value: $(params.SINGLE_COMPONENT_CUSTOM_RESOURCE)
+    - name: CUSTOM_RESOURCE_NAMESPACE
+      value: $(params.SINGLE_COMPONENT_CUSTOM_RESOURCE_NS)
+    - name: SNAPSHOT_PATH
+      value: $(params.HOMEDIR)/snapshot.json
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
+    name: reduce
+    onError: continue
   - args:
     - validate
     - image
     - --verbose
     - --images
-    - $(params.IMAGES)
+    - /tekton/home/snapshot.json
     - --policy
     - $(params.POLICY_CONFIGURATION)
     - --public-key
@@ -119,16 +173,21 @@ spec:
     - --rekor-url
     - $(params.REKOR_HOST)
     - --ignore-rekor=$(params.IGNORE_REKOR)
+    - --workers
+    - $(params.WORKERS)
     - --info=$(params.INFO)
+    - --timeout=100h
     - --strict=false
     - --show-successes
     - --effective-time=$(params.EFFECTIVE_TIME)
+    - --extra-rule-data=$(params.EXTRA_RULE_DATA)
     - --output
-    - yaml=$(params.HOMEDIR)/report.yaml
+    - text?show-successes=false
     - --output
     - appstudio=$(results.TEST_OUTPUT.path)
     - --output
     - json=$(params.HOMEDIR)/report-json.json
+    - --logfile=$(params.HOMEDIR)/debug.log
     command:
     - ec
     computeResources:
@@ -142,27 +201,48 @@ spec:
       value: /tekton-custom-certs:/etc/ssl/certs:/etc/pki/tls/certs:/system/etc/security/cacerts:$(params.SSL_CERT_DIR)
     - name: EC_CACHE
       value: "false"
-    image: registry.redhat.io/rhtas/ec-rhel9:0.2
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
     name: validate
-  - args:
-    - $(params.HOMEDIR)/report.yaml
-    command:
-    - cat
-    image: registry.redhat.io/rhtas/ec-rhel9:0.2
-    name: report
+    onError: continue
+    volumeMounts:
+    - mountPath: /etc/pki/tls/certs/ca-custom-bundle.crt
+      name: trusted-ca
+      readOnly: true
+      subPath: ca-bundle.crt
   - args:
     - $(params.HOMEDIR)/report-json.json
     command:
     - cat
-    image: registry.redhat.io/rhtas/ec-rhel9:0.2
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
     name: report-json
+    onError: continue
   - args:
     - .
     - $(results.TEST_OUTPUT.path)
     command:
     - jq
-    image: registry.redhat.io/rhtas/ec-rhel9:0.2
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
     name: summary
+    onError: continue
+  - args:
+    - |
+      ----- DEBUG OUTPUT -----
+    command:
+    - printf
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
+    name: info
+  - args:
+    - version
+    command:
+    - ec
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
+    name: version
+  - args:
+    - $(params.HOMEDIR)/debug.log
+    command:
+    - cat
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
+    name: debug-log
   - args:
     - --argjson
     - strict
@@ -173,7 +253,7 @@ spec:
     - $(results.TEST_OUTPUT.path)
     command:
     - jq
-    image: registry.redhat.io/rhtas/ec-rhel9:0.2
+    image: registry.redhat.io/rhtas/ec-rhel9:0.6
     name: assert
   - image: registry.redhat.io/openshift4/ose-cli:4.13@sha256:73df37794ffff7de1101016c23dc623e4990810390ebdabcbbfa065214352c7c
     name: annotate-task
@@ -184,6 +264,14 @@ spec:
       oc annotate taskrun $(context.taskRun.name) task.results.type=ec
       oc annotate taskrun $(context.taskRun.name) task.results.container=step-report-json
       oc annotate taskrun $(context.taskRun.name) task.output.location=logs
+  volumes:
+  - configMap:
+      items:
+      - key: $(params.CA_TRUST_CONFIG_MAP_KEY)
+        path: ca-bundle.crt
+      name: $(params.CA_TRUST_CONFIGMAP_NAME)
+      optional: true
+    name: trusted-ca
   workspaces:
   - description: The workspace where the snapshot spec json file resides
     name: data
